@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrippa's Spirit Code V4.4.2 (Astrolabe OS Edit)</title>
+    <!-- 引入 Astronomy Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+    <!-- 引入赛博魔导书质感字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* 星空与赛博魔法配色体系 */
+            --bg-color: #05070f; 
+            --text-color: #c9d1d9; 
+            --text-muted: #6e7681;
+            --accent-cyan: #58a6ff; 
+            --accent-glow: rgba(88, 166, 255, 0.4);
+            --gold: #d2a83e; 
+            --gold-glow: rgba(210, 168, 62, 0.4);
+            --red: #ff7b72; 
+            --red-glow: rgba(255, 123, 114, 0.4);
+            --success: #238636;
+            
+            /* 毛玻璃卡片材质 */
+            --glass-bg: rgba(13, 17, 23, 0.65);
+            --glass-border: rgba(88, 166, 255, 0.15);
+            --input-bg: rgba(1, 4, 9, 0.6);
+        }
+
+        body { 
+            font-family: 'Consolas', 'Microsoft YaHei', monospace; 
+            /* 虚数潜空间星空渐变背景 */
+            background: radial-gradient(circle at 50% 0%, #151a2a 0%, var(--bg-color) 100%);
+            background-attachment: fixed;
+            color: var(--text-color); 
+            margin: 0; 
+            padding: 30px 15px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            color: var(--gold);
+            text-align: center;
+            text-shadow: 0 0 15px var(--gold-glow);
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+
+        h1 small {
+            font-family: 'Consolas', monospace;
+            display: block;
+            font-size: 0.4em;
+            letter-spacing: normal;
+            color: var(--accent-cyan);
+            text-shadow: none;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        h2 {
+            font-family: 'Cinzel', serif;
+            color: #fff;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 1.4em;
+        }
+
+        .container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 25px; 
+            width: 100%; 
+            max-width: 1100px; 
+            justify-content: center; 
+        }
+
+        /* 毛玻璃面板样式 */
+        .panel { 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border); 
+            padding: 25px; 
+            border-radius: 12px; 
+            flex: 1; 
+            min-width: 320px; 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .panel:hover {
+            box-shadow: 0 8px 32px 0 rgba(88, 166, 255, 0.1);
+        }
+        
+        /* Auto Calc Grid */
+        .auto-calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .full-width { grid-column: span 2; }
+        
+        /* 输入框赛博风格化 */
+        .form-input, .coord-select, select, input[type="number"] { 
+            background: var(--input-bg); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            color: var(--accent-cyan); 
+            padding: 10px; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-family: inherit;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .form-input:focus, .coord-select:focus, select:focus, input[type="number"]:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .form-input { width: 100%; }
+        .form-label { font-size: 0.85em; color: #a5b2c0; margin-bottom: 6px; display: block; font-weight: bold; }
+        .form-label span { font-weight: normal; font-size: 0.8em; opacity: 0.6; }
+
+        .coord-group { display: flex; gap: 8px; }
+        .coord-select { width: 85px; }
+        
+        /* 按钮光效魔法 */
+        .btn-auto { 
+            background: transparent; 
+            color: var(--success); 
+            border: 1px solid var(--success); 
+            padding: 12px; 
+            width: 100%; 
+            cursor: pointer; 
+            font-weight: bold; 
+            border-radius: 6px; 
+            transition: 0.3s; 
+            font-family: 'Cinzel', serif; 
+            font-size: 1.1em; 
+            letter-spacing: 1px;
+            box-shadow: inset 0 0 10px rgba(35, 134, 54, 0.1);
+        }
+        .btn-auto:hover:not(:disabled) { 
+            background: rgba(35, 134, 54, 0.2);
+            box-shadow: 0 0 15px rgba(35, 134, 54, 0.4), inset 0 0 10px rgba(35, 134, 54, 0.3);
+            text-shadow: 0 0 8px rgba(35, 134, 54, 0.8);
+        }
+        .btn-auto:disabled { border-color: #333; color: #555; cursor: not-allowed; box-shadow: none; }
+
+        .gen-btn { 
+            width: 100%; 
+            padding: 15px; 
+            background: transparent; 
+            color: var(--gold); 
+            border: 1px solid var(--gold); 
+            font-weight: bold; 
+            margin-top: 25px; 
+            border-radius: 6px;
+            cursor: pointer; 
+            font-family: 'Cinzel', serif; 
+            font-size: 1.2em; 
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        .gen-btn:hover {
+            background: rgba(210, 168, 62, 0.15);
+            box-shadow: 0 0 20px var(--gold-glow), inset 0 0 15px var(--gold-glow);
+            text-shadow: 0 0 8px var(--gold);
+        }
+        
+        .quick-city { font-size: 0.75em; color: #8b949e; cursor: pointer; border-bottom: 1px dashed #8b949e; margin-right: 12px; transition: color 0.2s; }
+        .quick-city:hover { color: var(--accent-cyan); border-bottom-color: var(--accent-cyan); }
+        
+        /* 防呆警告框 */
+        .warning-box {
+            margin-top: 20px; padding: 15px; 
+            border: 1px solid rgba(255, 123, 114, 0.3); border-radius: 8px;
+            background: rgba(255, 123, 114, 0.05); color: var(--red);
+            font-size: 0.85em; line-height: 1.6;
+            box-shadow: 0 0 15px var(--red-glow);
+        }
+        .warning-box strong { display: block; margin-bottom: 8px; font-size: 1.1em; font-family: 'Cinzel', serif; letter-spacing: 1px;}
+
+        /* Manual Port Styles */
+        .mode-switch { display: flex; background: rgba(0,0,0,0.3); margin: 20px 0; border: 1px solid var(--glass-border); border-radius: 6px; overflow: hidden;}
+        .mode-btn { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 0.85em; color: var(--text-muted); transition: 0.3s;}
+        .mode-btn.active { background: rgba(88, 166, 255, 0.2); color: var(--accent-cyan); font-weight: bold; box-shadow: inset 0 0 10px var(--accent-glow);}
+        
+        .input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding: 8px 0; }
+        .zodiac-container { display: flex; gap: 8px; }
+        .input-sign { width: 110px; } .input-deg { width: 70px; } .input-abs { width: 90px; }
+        .hidden { display: none !important; }
+
+        /* Results Card */
+        .result-card { 
+            background: rgba(0,0,0,0.4); 
+            border-left: 4px solid var(--accent-cyan); 
+            border-radius: 4px 8px 8px 4px;
+            padding: 20px; 
+            margin-bottom: 15px; 
+            position: relative;
+            overflow: hidden;
+        }
+        .result-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, var(--accent-glow) 0%, transparent 100%);
+            opacity: 0.1; pointer-events: none;
+        }
+        .result-card.evil { border-left-color: var(--red); }
+        .result-card.evil::before { background: linear-gradient(90deg, var(--red-glow) 0%, transparent 100%); }
+        
+        .hebrew-name { font-size: 2.8em; color: var(--gold); font-family: 'Cinzel', serif; direction: rtl; text-shadow: 0 0 15px var(--gold-glow); margin: 10px 0;}
+        .latin-name { font-weight: bold; letter-spacing: 3px; font-size: 1.1em; color: #fff;}
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .tab { flex: 1; text-align: center; padding: 10px; background: rgba(0,0,0,0.3); cursor: pointer; font-size: 0.85em; color: var(--text-muted); border-radius: 6px; border: 1px solid transparent; transition: 0.3s;}
+        .tab.active { background: rgba(88, 166, 255, 0.1); color: var(--accent-cyan); border-color: var(--glass-border); font-weight: bold; box-shadow: 0 0 10px var(--accent-glow);}
+        
+        /* SVG Magic Circle */
+        #svg-container { text-align: center; margin-top: 30px; }
+        svg { filter: drop-shadow(0 0 10px rgba(88, 166, 255, 0.2)); }
+    </style>
+</head>
+<body>
+
+    <h1>Agrippa's Spirit Code <small>阿格里帕灵体生成器 V4.4.3</small></h1>
+
+    <div class="container">
+        <!-- Panel 1: Calculator / Inputs -->
+        <div class="panel">
+            <h2>0. 自动排盘 <span style="font-size:0.5em; font-family: 'Consolas'; float:right; margin-top:8px; color:var(--text-muted)">Auto Calculation</span></h2>
+            <div style="margin-bottom:15px;">
+                <span class="quick-city" onclick="fillCity(39.9042, 116.4074, 8)">北京 (Beijing)</span>
+                <span class="quick-city" onclick="fillCity(31.2304, 121.4737, 8)">上海 (Shanghai)</span>
+                <span class="quick-city" onclick="fillCity(51.5074, -0.1278, 0)">伦敦 (London)</span>
+                <span class="quick-city" onclick="fillCity(40.7128, -74.0060, -5)">纽约 (New York)</span>
+            </div>
+            
+            <div class="auto-calc-grid">
+                <div>
+                    <label class="form-label">日期 <span>Date</span></label>
+                    <input type="date" id="auto-date" class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">时间 <span>Time</span></label>
+                    <input type="time" id="auto-time" class="form-input" value="12:00">
+                </div>
+                
+                <div>
+                    <label class="form-label">纬度 <span>Latitude</span></label>
+                    <div class="coord-group">
+                        <select id="lat-dir" class="coord-select">
+                            <option value="1">N (北)</option>
+                            <option value="-1">S (南)</option>
+                        </select>
+                        <input type="number" id="auto-lat" class="form-input" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">经度 <span>Longitude</span></label>
+                    <div class="coord-group">
+                        <select id="long-dir" class="coord-select">
+                            <option value="1">E (东)</option>
+                            <option value="-1">W (西)</option>
+                        </select>
+                        <input type="number" id="auto-long" class="form-input" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+                
+                <div class="full-width">
+                    <label class="form-label">时区/UTC偏移 <span>Timezone (e.g. +8)</span></label>
+                    <input type="number" id="auto-tz" class="form-input" value="8" step="0.5">
+                </div>
+            </div>
+            
+            <button id="btn-calc" class="btn-auto" onclick="runAutoCalc()">✦ 计算星盘 & 朔望点 (Calculate)</button>
+            
+            <!-- ANTI-FOOL WARNING BOX -->
+            <div class="warning-box">
+                <strong>⚠️ 重要提示 (Manual Check Required):</strong>
+                程序仅提供【行星 & 朔望点】的绝对精确运算。<br>
+                由于各占星学派分宫制差异 (引擎默认 Porphyry)，请务必手动核对下方：<br>
+                <span style="color:#fff; margin-top:5px; display:inline-block;"><b>[上升点 ASC] [中天 MC] [11/12宫头][福点]</b></span>
+            </div>
+            
+            <hr style="border:0; border-top:1px dashed rgba(255,255,255,0.1); margin: 25px 0;">
+
+            <h2>1. 参数微调 <span style="font-size:0.5em; font-family: 'Consolas'; float:right; margin-top:8px; color:var(--text-muted)">Manual Port</span></h2>
+            <div class="mode-switch">
+                <div class="mode-btn active" id="btn-mode-zodiac" onclick="setMode('zodiac')">星座模式 (Zodiac)</div>
+                <div class="mode-btn" id="btn-mode-abs" onclick="setMode('abs')">绝对度数 (Absolute)</div>
+            </div>
+
+            <div class="input-group" style="background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; border:none; margin-bottom:15px;">
+                <div><span style="font-weight:bold; color:var(--gold)">盘型</span> <span style="font-size:0.8em;color:var(--text-muted)">Chart Type</span></div>
+                <select id="timeDetails" style="border-color:var(--gold); color:var(--gold);">
+                    <option value="day">日生盘 (Day Chart)</option>
+                    <option value="night">夜生盘 (Night Chart)</option>
+                </select>
+            </div>
+            
+            <!-- Dynamic Inputs Area -->
+            <div id="inputs-container"></div>
+
+            <button class="gen-btn" onclick="calculateAll()">⟡ 生成名字 / Generate Names ⟡</button>
+        </div>
+
+        <!-- Panel 2: Results & Magic Circle -->
+        <div class="panel">
+            <h2>2. 计算结果 <span style="font-size:0.5em; font-family: 'Consolas'; float:right; margin-top:8px; color:var(--text-muted)">Computed Names</span></h2>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('A')">四角胜利星法<br><small>Method A</small></div>
+                <div class="tab" onclick="switchTab('B')">第11/12宫法<br><small>Method B</small></div>
+                <div class="tab" onclick="switchTab('C')">五生命主法<br><small>Hyleg (C)</small></div>
+            </div>
+            <div id="results-container"></div>
+            <div id="svg-container"></div>
+        </div>
+    </div>
+
+<script>
+// ==========================================
+// BACKEND LOGIC (UNCHANGED) - DispoCoS No.18 Seal
+// ==========================================
+const PLANETS = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"];
+const ZODIAC_NAMES =["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"];
+const ZODIAC_CN =["白羊", "金牛", "双子", "巨蟹", "狮子", "处女", "天秤", "天蝎", "射手", "摩羯", "水瓶", "双鱼"];
+const HEBREW =[
+    {ch:'א',l:'A'},{ch:'ב',l:'B'},{ch:'ג',l:'G'},{ch:'ד',l:'D'},{ch:'ה',l:'H'},{ch:'ו',l:'V'},{ch:'ז',l:'Z'},{ch:'ח',l:'Ch'},
+    {ch:'ט',l:'T'},{ch:'י',l:'I'},{ch:'כ',l:'K'},{ch:'ל',l:'L'},{ch:'מ',l:'M'},{ch:'נ',l:'N'},{ch:'ס',l:'S'},{ch:'ע',l:'O'},
+    {ch:'פ',l:'P'},{ch:'צ',l:'Tz'},{ch:'ק',l:'Q'},{ch:'ר',l:'R'},{ch:'ש',l:'Sh'},{ch:'ת',l:'Th'}
+];
+
+const INPUT_MAP =[
+    { id:'p_sun', name:'Sun', cn:'太阳' }, { id:'p_moon', name:'Moon', cn:'月亮' },
+    { id:'p_mercury', name:'Mercury', cn:'水星' }, { id:'p_venus', name:'Venus', cn:'金星' },
+    { id:'p_mars', name:'Mars', cn:'火星' }, { id:'p_jupiter', name:'Jupiter', cn:'木星' },
+    { id:'p_saturn', name:'Saturn', cn:'土星' },
+    { id:'pt_asc', name:'ASC', cn:'上升点' }, { id:'pt_mc', name:'MC', cn:'中天' },
+    { id:'pt_h11', name:'11th House', cn:'11宫(善)' }, { id:'pt_h12', name:'12th House', cn:'12宫(恶)' },
+    { id:'pt_pf', name:'Fortuna', cn:'福点' }, { id:'pt_syz', name:'Syzygy', cn:'朔望点' }
+];
+
+const ZODIAC_INFO =[
+    { ruler:'Mars', exalt:'Sun', tripD:'Sun', tripN:'Jupiter', terms:[[6,'Jupiter'],[12,'Venus'],[20,'Mercury'],[25,'Mars'],[30,'Saturn']], faces:['Mars','Sun','Venus'] },
+    { ruler:'Venus', exalt:'Moon', tripD:'Venus', tripN:'Moon', terms:[[8,'Venus'],[14,'Mercury'],[22,'Jupiter'],[27,'Saturn'],[30,'Mars']], faces:['Mercury','Moon','Saturn'] },
+    { ruler:'Mercury', exalt:null, tripD:'Saturn', tripN:'Mercury', terms:[[6,'Mercury'],[12,'Jupiter'],[17,'Venus'],[24,'Mars'],[30,'Saturn']], faces:['Jupiter','Mars','Sun'] },
+    { ruler:'Moon', exalt:'Jupiter', tripD:'Mars', tripN:'Mars', terms:[[7,'Mars'],[13,'Venus'],[19,'Mercury'],[26,'Jupiter'],[30,'Saturn']], faces:['Venus','Mercury','Moon'] },
+    { ruler:'Sun', exalt:null, tripD:'Sun', tripN:'Jupiter', terms:[[6,'Jupiter'],[11,'Venus'],[18,'Saturn'],[24,'Mercury'],[30,'Mars']], faces:['Saturn','Jupiter','Mars'] },
+    { ruler:'Mercury', exalt:'Mercury', tripD:'Venus', tripN:'Moon', terms:[[7,'Mercury'],[17,'Venus'],[21,'Jupiter'],[28,'Mars'],[30,'Saturn']], faces:['Sun','Venus','Mercury'] },
+    { ruler:'Venus', exalt:'Saturn', tripD:'Saturn', tripN:'Mercury', terms:[[6,'Saturn'],[14,'Mercury'],[21,'Jupiter'],[28,'Venus'],[30,'Mars']], faces:['Moon','Saturn','Jupiter'] },
+    { ruler:'Mars', exalt:null, tripD:'Mars', tripN:'Mars', terms:[[7,'Mars'],[11,'Venus'],[19,'Mercury'],[24,'Jupiter'],[30,'Saturn']], faces:['Mars','Sun','Venus'] },
+    { ruler:'Jupiter', exalt:null, tripD:'Sun', tripN:'Jupiter', terms:[[12,'Jupiter'],[17,'Venus'],[21,'Mercury'],[26,'Saturn'],[30,'Mars']], faces:['Mercury','Moon','Saturn'] },
+    { ruler:'Saturn', exalt:'Mars', tripD:'Venus', tripN:'Moon', terms:[[7,'Venus'],[14,'Mercury'],[22,'Jupiter'],[26,'Mars'],[30,'Saturn']], faces:['Jupiter','Mars','Sun'] },
+    { ruler:'Saturn', exalt:null, tripD:'Saturn', tripN:'Mercury', terms:[[7,'Mercury'],[13,'Venus'],[20,'Jupiter'],[25,'Mars'],[30,'Saturn']], faces:['Venus','Mercury','Moon'] },
+    { ruler:'Jupiter', exalt:'Venus', tripD:'Mars', tripN:'Mars', terms:[[12,'Venus'],[16,'Jupiter'],[19,'Mercury'],[28,'Mars'],[30,'Saturn']], faces:['Saturn','Jupiter','Mars'] }
+];
+
+function fillCity(lat, long, tz) {
+    document.getElementById('lat-dir').value = lat >= 0 ? "1" : "-1";
+    document.getElementById('long-dir').value = long >= 0 ? "1" : "-1";
+    document.getElementById('auto-lat').value = Math.abs(lat);
+    document.getElementById('auto-long').value = Math.abs(long);
+    document.getElementById('auto-tz').value = tz;
+}
+
+function runAutoCalc() {
+    const btn = document.getElementById('btn-calc');
+    const oldText = btn.textContent;
+    btn.textContent = "计算中... (Calculating)";
+    btn.disabled = true;
+
+    setTimeout(() => {
+        try {
+            if (typeof Astronomy === 'undefined') throw new Error("Astronomy library not loaded. Check connection.");
+            const dStr = document.getElementById('auto-date').value;
+            const tStr = document.getElementById('auto-time').value;
+            const rawLat = parseFloat(document.getElementById('auto-lat').value);
+            const rawLong = parseFloat(document.getElementById('auto-long').value);
+            const latDir = parseFloat(document.getElementById('lat-dir').value);
+            const longDir = parseFloat(document.getElementById('long-dir').value);
+            const tz = parseFloat(document.getElementById('auto-tz').value);
+
+            if(!dStr || !tStr || isNaN(rawLat) || isNaN(rawLong) || isNaN(tz)) throw new Error("请填写完整的日期、时间、经纬度和时区。\nPlease fill all date, time and location fields.");
+
+            const lat = rawLat * latDir;
+            const lng = rawLong * longDir;
+            const dt = new Date(`${dStr}T${tStr}:00`);
+            const utcDate = new Date(dt.getTime() - (tz * 3600000));
+            const astroTime = Astronomy.MakeTime(utcDate); 
+            const observer = new Astronomy.Observer(lat, lng, 0);
+
+            const getPos = (body) => {
+                const eq = Astronomy.Equator(body, astroTime, observer, true, true);
+                const ecl = Astronomy.Ecliptic(eq.vec);
+                return (ecl.elon + 360) % 360;
+            };
+
+            const data = {};
+            data.p_sun = getPos("Sun");
+            data.p_moon = getPos("Moon");
+            data.p_mercury = getPos("Mercury");
+            data.p_venus = getPos("Venus");
+            data.p_mars = getPos("Mars");
+            data.p_jupiter = getPos("Jupiter");
+            data.p_saturn = getPos("Saturn");
+
+            const sidereal = Astronomy.SiderealTime(astroTime);
+            const ramc = (sidereal * 15 + lng) % 360; 
+            const eps = astroTime.eps * Math.PI / 180; 
+            const ramcRad = ramc * Math.PI / 180;
+            const latRad = lat * Math.PI / 180;
+
+            let mc = Math.atan2(Math.sin(ramcRad), Math.cos(ramcRad) * Math.cos(eps)) * 180 / Math.PI;
+            data.pt_mc = (mc + 360) % 360;
+
+            const ascTop = Math.cos(ramcRad);
+            const ascBot = - (Math.sin(ramcRad) * Math.cos(eps) + Math.tan(latRad) * Math.sin(eps));
+            let asc = Math.atan2(ascTop, ascBot) * 180 / Math.PI;
+            data.pt_asc = (asc + 360) % 360;
+
+            let arc = (data.pt_asc - data.pt_mc + 360) % 360;
+            data.pt_h11 = (data.pt_mc + arc/3) % 360;
+            data.pt_h12 = (data.pt_mc + 2*arc/3) % 360;
+
+            const sunEq = Astronomy.Equator("Sun", astroTime, observer, true, true);
+            const sunHor = Astronomy.Horizon(astroTime, observer, sunEq.ra, sunEq.dec, 'normal');
+            const isDay = sunHor.altitude > 0;
+            document.getElementById('timeDetails').value = isDay ? 'day' : 'night';
+
+            if(isDay) data.pt_pf = (data.pt_asc + data.p_moon - data.p_sun + 360) % 360;
+            else data.pt_pf = (data.pt_asc + data.p_sun - data.p_moon + 360) % 360;
+
+            const prevNew = Astronomy.SearchMoonPhase(0, astroTime, -35);
+            const prevFull = Astronomy.SearchMoonPhase(180, astroTime, -35);
+            let targetSyz = (prevNew && prevFull) ? (prevNew.date > prevFull.date ? prevNew : prevFull) : (prevNew || prevFull);
+
+            if(targetSyz) {
+                const syzTime = Astronomy.MakeTime(targetSyz.date);
+                const syzEq = Astronomy.Equator("Moon", syzTime, observer, false, true);
+                const syzEcl = Astronomy.Ecliptic(syzEq.vec);
+                data.pt_syz = (syzEcl.elon + 360) % 360;
+            } else {
+                data.pt_syz = data.p_moon; 
+            }
+
+            for(let key in data) {
+                const input = document.getElementById('abs_'+key);
+                if(input) input.value = data[key].toFixed(2);
+            }
+
+            inputMode = 'abs';
+            setMode('zodiac');
+            calculateAll();
+
+        } catch(e) {
+            alert("Error: " + e.message);
+            console.error(e);
+        } finally {
+            btn.textContent = oldText;
+            btn.disabled = false;
+        }
+    }, 100);
+}
+
+class AgrippaEngine {
+    constructor(data) { this.data = data; }
+    norm(d) { return (d % 360 + 360) % 360; }
+    
+    getAlmuten(deg) {
+        let sIdx = Math.floor(deg/30);
+        let sInfo = ZODIAC_INFO[sIdx];
+        let scores = {};
+        PLANETS.forEach(p=>scores[p]=0);
+        
+        if(sInfo.ruler) scores[sInfo.ruler]+=5;
+        if(sInfo.exalt) scores[sInfo.exalt]+=4;
+        let trip = this.data.isDay ? sInfo.tripD : sInfo.tripN;
+        if(trip) scores[trip]+=3;
+        
+        let sPos = deg % 30;
+        for(let t of sInfo.terms) { if(sPos < t[0]) { scores[t[1]]+=2; break; } }
+        let fIdx = Math.floor(sPos/10);
+        if(sInfo.faces[fIdx]) scores[sInfo.faces[fIdx]]+=1;
+
+        let res = Object.keys(scores).map(p=>({
+            planet:p, score:scores[p], pos:this.data.planets[p], 
+            dist: Math.abs(this.norm(this.data.planets[p]-deg))
+        })).filter(x=>x.score>0).sort((a,b)=> b.score - a.score || a.dist - b.dist);
+        
+        return res[0];
+    }
+
+    getLet(deg, start, rev) {
+        let diff = this.norm(rev ? start - deg : deg - start);
+        return HEBREW[Math.floor(diff) % 22];
+    }
+
+    run(method) {
+        let pts = this.data.points;
+        let p = this.data.planets;
+        let list =[];
+        let start = 0;
+
+        if(method === 'A') {
+            start = pts.pt_asc;
+            let angles =[pts.pt_asc, pts.pt_mc, this.norm(pts.pt_asc+180), this.norm(pts.pt_mc+180)];
+            angles.forEach(a => {
+                let alm = this.getAlmuten(a);
+                if(alm && !list.find(x=>x.planet===alm.planet)) list.push(alm);
+            });
+            list.sort((a,b)=>b.score - a.score); 
+        } else if(method === 'B') {
+            start = pts.pt_asc;
+            let alm11 = this.getAlmuten(pts.pt_h11);
+            if(alm11) list.push(alm11);
+        } else {
+            let sun=p.Sun, moon=p.Moon;
+            let waxing = this.norm(moon-sun) < 180;
+            let order = this.data.isDay 
+                ? (!waxing ?[sun,moon,pts.pt_pf,pts.pt_asc,pts.pt_syz] :[sun,moon,pts.pt_asc,pts.pt_pf,pts.pt_syz])
+                : (!waxing ? [moon,sun,pts.pt_pf,pts.pt_asc,pts.pt_syz] :[moon,sun,pts.pt_asc,pts.pt_pf,pts.pt_syz]);
+            
+            return {
+                good: order.map((x,i)=>({ letter: this.getLet(x,0,false), source:`Hyleg ${i+1}`, pos:x })),
+                evil: order.map((x,i)=>({ letter: this.getLet(this.norm(x+180),0,true), source:`Hyleg ${i+1} Opp`, pos:this.norm(x+180) })),
+                start: 0
+            };
+        }
+
+        return {
+            good: list.map(x=>({ letter:this.getLet(x.pos, start, false), source:x.planet, pos:x.pos })),
+            evil: list.map(x=>({ letter:this.getLet(this.norm(x.pos+180), this.norm(start+180), true), source:x.planet+" Opp", pos:this.norm(x.pos+180) })),
+            start: start
+        };
+    }
+}
+
+let inputMode = 'zodiac';
+let activeTab = 'A';
+let currentResults = {};
+
+function init() {
+    const container = document.getElementById('inputs-container');
+    const zOptions = ZODIAC_NAMES.map((n,i)=>`<option value="${i}">${ZODIAC_CN[i]} (${n})</option>`).join('');
+
+    INPUT_MAP.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'input-group';
+        div.innerHTML = `
+            <div><span style="font-weight:bold">${item.cn}</span> <span style="font-size:0.8em;color:var(--text-muted); margin-left:5px;">${item.name}</span></div>
+            <input type="number" id="abs_${item.id}" value="0" class="input-abs hidden" step="0.1">
+            <div class="zodiac-container" id="zod_${item.id}">
+                <select id="sign_${item.id}" class="input-sign">${zOptions}</select>
+                <input type="number" id="deg_${item.id}" value="0" class="input-deg" step="0.1" max="30">
+            </div>
+        `;
+        container.appendChild(div);
+    });
+
+    document.getElementById('auto-date').valueAsDate = new Date();
+    setMode('zodiac');
+}
+
+function setMode(mode) {
+    if(inputMode === 'zodiac' && mode === 'abs') {
+        INPUT_MAP.forEach(i => {
+            const s = parseInt(document.getElementById(`sign_${i.id}`).value);
+            const d = parseFloat(document.getElementById(`deg_${i.id}`).value) || 0;
+            document.getElementById(`abs_${i.id}`).value = (s*30 + d).toFixed(2);
+        });
+    } else if(inputMode === 'abs' && mode === 'zodiac') {
+        INPUT_MAP.forEach(i => {
+            const val = parseFloat(document.getElementById(`abs_${i.id}`).value) || 0;
+            document.getElementById(`sign_${i.id}`).value = Math.floor(val/30);
+            document.getElementById(`deg_${i.id}`).value = (val%30).toFixed(2);
+        });
+    }
+    inputMode = mode;
+    document.getElementById('btn-mode-abs').className = mode==='abs'?'mode-btn active':'mode-btn';
+    document.getElementById('btn-mode-zodiac').className = mode==='zodiac'?'mode-btn active':'mode-btn';
+    
+    INPUT_MAP.forEach(i => {
+        if(mode==='abs') {
+            document.getElementById(`abs_${i.id}`).classList.remove('hidden');
+            document.getElementById(`zod_${i.id}`).classList.add('hidden');
+        } else {
+            document.getElementById(`abs_${i.id}`).classList.add('hidden');
+            document.getElementById(`zod_${i.id}`).classList.remove('hidden');
+        }
+    });
+}
+
+function calculateAll() {
+    // ANTI-FOOL CHECK
+    let totalSum = 0;
+    INPUT_MAP.forEach(i => totalSum += parseFloat(document.getElementById(`abs_${i.id}`).value)||0);
+    
+    if (totalSum === 0) {
+        alert("⚠️ 警告 / Warning：\n数据全为 0 (Data is empty).\n请先点击上方的 [✦ 计算星盘] 按钮，或手动填入正确星历！");
+        return;
+    }
+
+    if(inputMode==='zodiac') setMode('abs');
+    
+    let vals = {};
+    INPUT_MAP.forEach(i => vals[i.id] = parseFloat(document.getElementById(`abs_${i.id}`).value)||0);
+    
+    let data = {
+        isDay: document.getElementById('timeDetails').value === 'day',
+        planets: {}, points: {}
+    };
+    INPUT_MAP.forEach(i => {
+        if(i.id.startsWith('p_')) data.planets[i.name] = vals[i.id];
+        else data.points[i.id] = vals[i.id];
+    });
+
+    let eng = new AgrippaEngine(data);
+    currentResults = { A: eng.run('A'), B: eng.run('B'), C: eng.run('C') };
+    render();
+    if(inputMode==='zodiac') setMode('zodiac');
+}
+
+function switchTab(t) { activeTab = t; document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); event.target.classList.add('active'); render(); }
+
+function render() {
+    const res = currentResults[activeTab];
+    if(!res) return;
+    
+    const h = res.good.map(x=>x.letter.ch).join("");
+    const l = res.good.map(x=>x.letter.l).join("");
+    const eh = res.evil.map(x=>x.letter.ch).join("");
+    const el = res.evil.map(x=>x.letter.l).join("");
+
+    document.getElementById('results-container').innerHTML = `
+        <div class="result-card">
+            <div style="font-size:0.85em;color:#8b949e">善灵真名 (Agathodaimon)</div>
+            <div class="hebrew-name">${h} <span style="font-size:0.45em; opacity:0.8;">אל</span></div>
+            <div class="latin-name">${l}-EL</div>
+            <div style="font-size:0.75em; margin-top:10px; color:#6e7681; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 5px;">
+                溯源 (Source): <span style="color:var(--gold)">${res.good.map(x=>x.source).join(", ")}</span>
+            </div>
+        </div>
+        <div class="result-card evil">
+            <div style="font-size:0.85em;color:#8b949e">恶灵真名 (Cacodaimon)</div>
+            <div class="hebrew-name" style="color:var(--red); text-shadow:0 0 15px var(--red-glow);">${eh} <span style="font-size:0.45em; opacity:0.8;">יה</span></div>
+            <div class="latin-name">${el}-IAH</div>
+        </div>
+    `;
+
+    // ==========================================
+    // SVG 魔导阵重绘 (Added Glow Filters & Bug Fix)
+    // ==========================================
+    const cx=200, cy=200, r=150;
+    
+    // SVG 定义光晕滤镜
+    let svg = `
+    <defs>
+        <filter id="glow-gold" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+    </defs>
+    `;
+
+    // 绘制基础法阵罗盘
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r+10}" fill="none" stroke="rgba(88, 166, 255, 0.1)" stroke-width="1" stroke-dasharray="4 4"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(0,0,0,0.4)" stroke="rgba(88, 166, 255, 0.3)" stroke-width="2"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r-35}" fill="none" stroke="rgba(255, 255, 255, 0.05)" stroke-width="1"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="3" fill="rgba(88, 166, 255, 0.5)"/>`; // Center dot
+    
+    // 绘制 22 个希伯来字母及刻度
+    for(let i=0; i<22; i++) {
+        let ang = (i*360/22 - 90) * Math.PI/180;
+        let x = cx + (r+25)*Math.cos(ang), y = cy + (r+25)*Math.sin(ang);
+        let active = res.good.find(g=>g.letter.ch===HEBREW[i].ch);
+        
+        // 字母高亮逻辑
+        if(active) {
+            svg += `<text x="${x}" y="${y}" fill="var(--gold)" font-size="20" font-family="'Cinzel', serif" font-weight="bold" text-anchor="middle" dominant-baseline="middle" filter="url(#glow-gold)">${HEBREW[i].ch}</text>`;
+        } else {
+            svg += `<text x="${x}" y="${y}" fill="rgba(255,255,255,0.2)" font-size="12" font-family="'Cinzel', serif" text-anchor="middle" dominant-baseline="middle">${HEBREW[i].ch}</text>`;
+        }
+
+        // 刻度线
+        let tx = cx + r*Math.cos(ang), ty = cy + r*Math.sin(ang);
+        let tx2 = cx + (r-12)*Math.cos(ang), ty2 = cy + (r-12)*Math.sin(ang);
+        svg += `<line x1="${tx}" y1="${ty}" x2="${tx2}" y2="${ty2}" stroke="${active ? 'rgba(210, 168, 62, 0.8)' : 'rgba(255,255,255,0.1)'}" stroke-width="${active ? 2 : 1}" />`;
+    }
+    
+    // 起点标记
+    svg += `<text x="${cx}" y="${cy+170}" font-size="11" font-family="Consolas" fill="var(--accent-cyan)" text-anchor="middle" opacity="0.8">Start Point: ${res.start.toFixed(2)}°</text>`;
+
+    // 绘制星体落点连线与坐标球
+    res.good.forEach(g => {
+        let rel = (g.pos - res.start + 360)%360;
+        // BUG FIX: 加极小的偏移量(0.001)防止绝对垂直/水平时 SVG 滤镜崩塌导致连线消失！
+        let ang = (rel - 90 + 0.001) * Math.PI/180; 
+        let x = cx + (r-35)*Math.cos(ang), y = cy + (r-35)*Math.sin(ang);
+        
+        // 发光连线
+        svg += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--accent-cyan)" stroke-width="1.5" opacity="0.7" filter="url(#glow-cyan)" />`;
+        // 发光星体坐标点
+        svg += `<circle cx="${x}" cy="${y}" r="5" fill="#0d1117" stroke="var(--accent-cyan)" stroke-width="2" filter="url(#glow-cyan)"/>`;
+    });
+
+    document.getElementById('svg-container').innerHTML = `<svg width="100%" height="400" viewBox="0 0 400 400" style="max-width:400px; display:block; margin:0 auto;">${svg}</svg>`;
+}
+
+init();
+</script>
+</body>
+</html>
